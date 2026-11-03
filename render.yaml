@@ -1,0 +1,23 @@
+services:
+  - type: web
+    name: eduspare
+    runtime: python
+    region: singapore
+    plan: free
+    buildCommand: chmod +x build.sh && ./build.sh
+    startCommand: gunicorn app:app --bind 0.0.0.0:$PORT --workers 2 --timeout 120
+    envVars:
+      - key: SECRET_KEY
+        generateValue: true
+      - key: ADMIN_USER
+        sync: false          # set manually in Render dashboard
+      - key: ADMIN_PASSWORD
+        sync: false          # set manually in Render dashboard
+      - key: SMTP_USER
+        sync: false          # your Gmail address
+      - key: SMTP_PASS
+        sync: false          # your Gmail App Password
+      - key: MAIL_FROM
+        sync: false          # same as SMTP_USER or custom
+      - key: PYTHON_VERSION
+        value: "3.12.3"

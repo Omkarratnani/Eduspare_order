@@ -1,0 +1,174 @@
+﻿{% extends 'base.html' %}{% block content %}
+<section class="page">
+  <div class="eyebrow">ORDER TRACKING</div>
+  <h1>{{ o['title'] }}</h1>
+  <div class="order-meta">
+    <span class="meta-item">&#128278; Project ID: <strong>{{ o['id'] }}</strong></span>
+    <span class="tag status-tag">{{ o['status'] }}</span>
+  </div>
+
+  {% if new_order %}
+  <div class="notify-banner" id="notifyBanner">
+    <div>
+      <strong>&#127881; Order placed successfully!</strong>
+      <p>Notify our team on WhatsApp so we can start reviewing your order right away.</p>
+    </div>
+    <a class="btn wa-btn" href="{{ wa_admin }}" target="_blank" rel="noopener" id="waNotifyBtn">
+      &#128172; Notify Admin on WhatsApp
+    </a>
+  </div>
+  {% endif %}
+
+  <div class="twocol" style="align-items:start">
+    <!-- Left col -->
+    <div>
+      <div class="panel">
+        <h2>Project Details</h2>
+        <p><b>Category:</b> {{ o['category'] }}<br>
+           <b>Delivery:</b> {{ o['delivery_type'] }}<br>
+           <b>Deadline:</b> {{ o['deadline'] }}</p>
+        <p class="desc-text">{{ o['description'] }}</p>
+        {% if o['admin_notes'] %}
+        <h3>&#128221; Team Update</h3>
+        <p class="update-note">{{ o['admin_notes'] }}</p>
+        {% endif %}
+      </div>
+
+      <!-- Status timeline -->
+      <div class="panel timeline-panel">
+        <h2>&#128203; Status Timeline</h2>
+        {% if log %}
+        <ol class="timeline">
+          {% for entry in log %}
+          <li class="tl-item {% if loop.last %}tl-current{% endif %}">
+            <div class="tl-dot"></div>
+            <div class="tl-body">
+              <span class="tl-status">{{ entry['status'] }}</span>
+              <span class="tl-ts">{{ entry['ts'] }}</span>
+              {% if entry['note'] %}<p class="tl-note">{{ entry['note'] }}</p>{% endif %}
+            </div>
+          </li>
+          {% endfor %}
+        </ol>
+        {% else %}
+        <p class="muted">No updates yet.</p>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- Right col -->
+    <div>
+      <!-- Bill download card -->
+      {% if has_bill %}
+      <div class="panel bill-card">
+        <h2>&#128196; Your Bill</h2>
+        {% set total, advance, balance = amounts(o) %}
+        <div class="price-row"><span>Total Project Amount</span><b>{{ money(total) }}</b></div>
+        <div class="price-row advance"><span>50% Advance Paid</span><b>{{ money(advance) }}</b></div>
+        <div class="price-row balance"><span>Balance on Delivery</span><b>{{ money(balance) }}</b></div>
+        {% if o['order_payment_ref'] %}
+        <p class="muted small">UPI Ref: <code>{{ o['order_payment_ref'] }}</code></p>
+        {% endif %}
+        <a class="btn wide" href="{{ url_for('bill', oid=o['id']) }}" id="downloadBillBtn">
+          &#11015; Download Project Bill (PDF)
+        </a>
+      </div>
+      {% endif %}
+
+      <!-- Payment section (for old quote flow, kept for compat) -->
+      {% if o['status'] == 'Quoted' and not o['quote_accepted'] %}
+      <div class="panel">
+        <h2>Quotation</h2>
+        {% set total, advance, balance = amounts(o) %}
+        <div class="price-row"><span>Total</span><b>{{ money(total) }}</b></div>
+        <div class="price-row"><span>50% Advance</span><b>{{ money(advance) }}</b></div>
+        <form method="post">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <input type="hidden" name="action" value="accept">
+          <button class="btn wide" id="acceptQuoteBtn">Accept Quotation</button>
+        </form>
+      </div>
+      {% elif o['status'] in ['Awaiting Advance','Payment Review'] and o['quote_accepted'] %}
+      <div class="panel">
+        <h2>Advance Payment</h2>
+        <p>Pay 50% advance to <strong>{{ upi }}</strong></p>
+        {% if o['status'] == 'Awaiting Advance' %}
+        <form method="post" enctype="multipart/form-data">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <input type="hidden" name="action" value="payment">
+          <label>UPI Reference<input name="reference" required maxlength="100"></label>
+          <label class="upload-label" id="payLabel">
+            <span>&#128206; Upload payment screenshot</span>
+            <input type="file" name="proof" accept="image/png,image/jpeg,image/webp,application/pdf" id="pay-proof" style="display:none" required>
+          </label>
+          <button class="btn wide" style="margin-top:10px">Submit Payment Proof</button>
+        </form>
+        {% else %}
+        <p class="tag">&#8987; Payment under review</p>
+        {% endif %}
+      </div>
+      {% endif %}
+
+      <!-- WhatsApp contact -->
+      <div class="panel wa-panel">
+        <h2>&#128172; Need Help?</h2>
+        <p class="muted">Message our team directly on WhatsApp with your Order ID.</p>
+        <a class="btn wa-btn wide" href="{{ wa }}" target="_blank" rel="noopener" id="waContactBtn">
+          Chat on WhatsApp &#8599;
+        </a>
+        <p class="muted small" style="margin-top:10px">Share your Order ID <code>{{ o['id'] }}</code> when messaging.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+{% if new_order %}
+<script>
+// Auto-open WhatsApp notification to admin on first visit after submission
+window.addEventListener('load', function(){
+  setTimeout(function(){
+    const btn = document.getElementById('waNotifyBtn');
+    if(btn){ btn.style.animation = 'pulse 1.5s infinite'; }
+  }, 800);
+});
+</script>
+{% endif %}
+
+<style>
+.order-meta{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-bottom:24px}
+.meta-item{color:#94a3b8;font-size:.95rem}
+.meta-item strong{color:#e2e8f0}
+.status-tag{display:inline-block;padding:5px 14px;border-radius:20px;font-size:.8rem;font-weight:700;background:rgba(124,58,237,.2);color:#a78bfa;letter-spacing:.03em}
+.notify-banner{display:flex;align-items:center;justify-content:space-between;gap:16px;background:rgba(37,211,102,.08);border:1.5px solid rgba(37,211,102,.3);border-radius:12px;padding:20px 24px;margin-bottom:24px;flex-wrap:wrap}
+.notify-banner strong{color:#e2e8f0;display:block;margin-bottom:4px}
+.notify-banner p{color:#94a3b8;margin:0;font-size:.9rem}
+.wa-btn{background:rgba(37,211,102,.15);border:1.5px solid rgba(37,211,102,.5);color:#25d366;white-space:nowrap}
+.wa-btn:hover{background:rgba(37,211,102,.25)}
+.bill-card{border:1.5px solid rgba(124,58,237,.3);background:rgba(124,58,237,.04)}
+.price-row{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid rgba(255,255,255,.05);font-size:.95rem;color:#94a3b8}
+.price-row:last-of-type{border-bottom:none}
+.price-row b{color:#e2e8f0}
+.price-row.advance b{color:#10b981}
+.price-row.balance b{color:#f59e0b}
+.desc-text{color:#94a3b8;white-space:pre-wrap}
+.update-note{background:rgba(124,58,237,.08);border-left:3px solid #7c3aed;padding:10px 14px;border-radius:0 8px 8px 0;color:#e2e8f0;white-space:pre-wrap}
+.timeline-panel{margin-top:20px}
+.timeline{list-style:none;padding:0;margin:0}
+.tl-item{display:flex;gap:14px;position:relative;padding-bottom:20px}
+.tl-item:last-child{padding-bottom:0}
+.tl-item::before{content:'';position:absolute;left:9px;top:20px;width:2px;bottom:0;background:rgba(124,58,237,.2)}
+.tl-item:last-child::before{display:none}
+.tl-dot{width:20px;height:20px;border-radius:50%;background:#1a1a2e;border:2px solid rgba(124,58,237,.4);flex-shrink:0;margin-top:2px;z-index:1}
+.tl-current .tl-dot{background:#7c3aed;border-color:#a78bfa;box-shadow:0 0 12px rgba(124,58,237,.5)}
+.tl-body{flex:1}
+.tl-status{font-weight:700;color:#e2e8f0;display:block}
+.tl-ts{font-size:.76rem;color:#475569}
+.tl-note{color:#94a3b8;margin:3px 0 0;font-size:.87rem}
+.wa-panel{background:rgba(37,211,102,.04);border:1px solid rgba(37,211,102,.15);margin-top:16px}
+code{background:rgba(255,255,255,.07);padding:2px 7px;border-radius:4px;font-size:.83em}
+.small{font-size:.82rem}
+.upload-label{display:flex;flex-direction:column;align-items:center;gap:6px;border:2px dashed rgba(124,58,237,.35);border-radius:10px;padding:18px;cursor:pointer;transition:.2s;font-size:.88rem;color:#94a3b8;text-align:center;margin-top:8px}
+.upload-label:hover{border-color:#7c3aed;background:rgba(124,58,237,.08)}
+@keyframes pulse{0%,100%{box-shadow:0 0 0 0 rgba(37,211,102,.4)}50%{box-shadow:0 0 0 8px rgba(37,211,102,0)}}
+</style>
+{% endblock %}

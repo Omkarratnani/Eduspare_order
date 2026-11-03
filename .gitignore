@@ -1,0 +1,25 @@
+# Virtual environment
+.venv/
+venv/
+env/
+
+# Database (will be created on deploy)
+*.db
+
+# Uploaded files (user content)
+uploads/*
+!uploads/.gitkeep
+
+# Environment files (secrets!)
+.env
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+
+# IDE / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db

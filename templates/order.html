@@ -1,0 +1,245 @@
+{% extends 'base.html' %}{% block content %}
+<section class="page">
+  <div class="eyebrow">NEW PROJECT REQUEST</div>
+  <h1>Place Your Order</h1>
+  <p>Fill in your project details. You must upload your advance payment screenshot before submitting.</p>
+
+  <form class="formgrid" method="post" enctype="multipart/form-data" id="orderForm">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+    <!-- Basic info -->
+    <div class="panel formgrid" style="margin-bottom:0">
+      <div class="eyebrow" style="grid-column:1/-1">YOUR DETAILS</div>
+      <label class="req">Full Name<input name="name" required maxlength="100" id="inp-name" placeholder="Your full name"></label>
+      <label class="req">WhatsApp Number<input name="phone" required maxlength="20" placeholder="+91XXXXXXXXXX" id="inp-phone"></label>
+      <label class="wide req">Email<input name="email" type="email" required id="inp-email" placeholder="you@example.com"></label>
+      <label class="req">Project Category
+        <select name="category" required id="inp-cat">
+          <option value="">Select category</option>
+          {% for x in ['Arduino','IoT','Robotics','Electronics','Software','Other'] %}<option>{{ x }}</option>{% endfor %}
+        </select>
+      </label>
+      <label class="req">Delivery Type
+        <select name="delivery_type" required id="inp-del">
+          <option value="Physical">Physical</option>
+          <option value="Digital">Digital</option>
+          <option value="Both">Both</option>
+        </select>
+      </label>
+      <label class="wide req">Project Title<input name="title" required maxlength="160" id="inp-title" placeholder="e.g. Line Following Robot"></label>
+      <label class="wide req">Project Description &amp; Requirements
+        <textarea name="description" rows="5" required maxlength="5000" id="inp-desc" placeholder="Describe your project requirements in detail..."></textarea>
+      </label>
+      <label class="req">Required By Date<input type="date" name="deadline" required id="inp-date"></label>
+    </div>
+
+    <!-- Amount section -->
+    <div class="panel amount-panel" style="margin-bottom:0">
+      <div class="eyebrow">PAYMENT DETAILS</div>
+      <p class="muted">Enter the total project amount discussed with our team. We'll calculate your advance.</p>
+      <label class="wide req">
+        Amount Discussed with Team (Rs.)
+        <input type="number" name="discussed_amount" id="inp-amount" min="1" step="1" required placeholder="e.g. 1500" autocomplete="off">
+      </label>
+      <div class="amount-breakdown wide" id="breakdown" style="display:none">
+        <div class="amt-row total-row">
+          <span>Total Project Amount</span><strong id="disp-total">Rs.0.00</strong>
+        </div>
+        <div class="amt-row advance-row">
+          <span>50% Advance to Pay Now</span><strong id="disp-advance">Rs.0.00</strong>
+        </div>
+        <div class="amt-row balance-row">
+          <span>Balance Due on Delivery</span><strong id="disp-balance">Rs.0.00</strong>
+        </div>
+      </div>
+    </div>
+
+    <!-- Payment gate -->
+    <div class="panel payment-gate" style="margin-bottom:0">
+      <div class="eyebrow">ADVANCE PAYMENT</div>
+      <p class="muted">Pay the 50% advance to <strong>{{ upi }}</strong> using any UPI app. Scan the QR below for the exact amount.</p>
+
+      <div class="qr-upi-row">
+        <div class="qr-wrap">
+          <img id="upi-qr" src="https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=upi%3A%2F%2Fpay%3Fpa%3Dcomputerbaazi%40axl%26pn%3DEduSpare%26cu%3DINR" alt="UPI QR Code" width="180" height="180">
+          <p class="muted small" id="qr-label">Scan to pay advance</p>
+        </div>
+        <div class="upi-info">
+          <div class="upi-id-box">
+            <span class="muted small">UPI ID</span>
+            <strong class="upi-id">{{ upi }}</strong>
+            <button type="button" class="btn small outline" onclick="navigator.clipboard.writeText('{{ upi }}');this.textContent='Copied!';setTimeout(()=>this.textContent='Copy',1500)">Copy</button>
+          </div>
+          <a class="btn outline wa-contact" href="https://wa.me/{{ admin_wa }}" target="_blank" rel="noopener">
+            💬 Contact us on WhatsApp
+          </a>
+          <p class="muted small">After paying, enter the UPI reference number and upload your screenshot below.</p>
+        </div>
+      </div>
+
+      <label class="wide req">UPI / Transaction Reference Number
+        <input name="order_ref" id="inp-ref" maxlength="100" placeholder="e.g. 429834XXXXXX" required>
+      </label>
+      <label class="upload-label wide req" id="proofLabel">
+        <span class="upload-icon">📎</span>
+        <span id="uploadText">Click to upload payment screenshot — Required (PNG/JPG/WEBP/PDF · max 5 MB)</span>
+        <input type="file" name="order_proof" accept="image/png,image/jpeg,image/webp,application/pdf" id="inp-proof" style="display:none" required>
+      </label>
+      <div class="proof-preview wide" id="proofPreview" style="display:none">
+        <img id="previewImg" src="" alt="Preview" style="display:none;max-height:90px;border-radius:6px">
+        <span id="previewName" class="muted small"></span>
+        <button type="button" class="btn small outline" id="removeProof">✕ Remove</button>
+      </div>
+    </div>
+
+    <p class="wide muted small" style="margin-top:4px">Estimated delivery: 3–5 working days after confirmation. Balance is due before delivery. Refunds subject to applicable law.</p>
+    <button class="btn wide" type="submit" id="submitBtn" disabled>Upload payment screenshot to submit →</button>
+  </form>
+</section>
+
+<style>
+.formgrid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.formgrid .wide{grid-column:1/-1}
+label.req::before{content:'* ';color:#f87171;font-weight:700;font-size:.85em}
+label.upload-label.req{border-color:rgba(248,113,113,.35)}
+input:invalid:not(:placeholder-shown),select:invalid:not([value=""]),textarea:invalid:not(:placeholder-shown){border-color:rgba(248,113,113,.5)!important}
+input:valid,select:valid,textarea:valid{border-color:rgba(16,185,129,.35)!important}
+.amount-panel{background:rgba(124,58,237,.06);border:1.5px solid rgba(124,58,237,.25)}
+.amount-breakdown{display:flex;flex-direction:column;gap:8px;margin-top:12px;border-radius:10px;overflow:hidden;border:1px solid rgba(255,255,255,.06)}
+.amt-row{display:flex;justify-content:space-between;align-items:center;padding:10px 14px;font-size:.95rem}
+.amt-row:nth-child(odd){background:rgba(255,255,255,.03)}
+.amt-row.advance-row strong{color:#10b981}
+.amt-row.balance-row{border-top:1px solid rgba(255,255,255,.08)}
+.amt-row.balance-row strong{color:#f59e0b}
+.amt-row.total-row strong{color:#e2e8f0}
+.payment-gate{background:rgba(124,58,237,.06);border:1.5px solid rgba(124,58,237,.25)}
+.qr-upi-row{display:flex;gap:24px;align-items:flex-start;margin:16px 0;flex-wrap:wrap}
+.qr-wrap{display:flex;flex-direction:column;align-items:center;gap:6px}
+.qr-wrap img{border-radius:10px;border:2px solid rgba(124,58,237,.3);background:#fff;padding:6px}
+.upi-info{flex:1;display:flex;flex-direction:column;gap:12px}
+.upi-id-box{display:flex;align-items:center;gap:10px;background:rgba(0,0,0,.3);border-radius:8px;padding:12px 14px;flex-wrap:wrap}
+.upi-id-box .muted{margin:0}
+.upi-id{font-size:1.05rem;color:#e2e8f0;flex:1}
+.wa-contact{display:inline-flex;align-items:center;gap:8px;background:rgba(37,211,102,.1);border-color:rgba(37,211,102,.4);color:#25d366}
+.wa-contact:hover{background:rgba(37,211,102,.2)}
+.upload-label{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;border:2px dashed rgba(124,58,237,.35);border-radius:10px;padding:26px 16px;cursor:pointer;transition:.2s;text-align:center;margin-top:8px}
+.upload-label:hover,.upload-label.has-file{border-color:#7c3aed;background:rgba(124,58,237,.09)}
+.upload-label.has-file{border-color:#10b981;background:rgba(16,185,129,.07)}
+.upload-icon{font-size:2rem}
+#uploadText{color:#94a3b8;font-size:.88rem}
+.proof-preview{display:flex;align-items:center;gap:12px;margin-top:8px;flex-wrap:wrap}
+#submitBtn:not(:disabled){background:linear-gradient(135deg,#7c3aed,#4f46e5)}
+#submitBtn:disabled{opacity:.4;cursor:not-allowed}
+.small{font-size:.82rem}
+</style>
+
+<script>
+const amtInp    = document.getElementById('inp-amount');
+const refInp    = document.getElementById('inp-ref');
+const proofInp  = document.getElementById('inp-proof');
+const submitBtn = document.getElementById('submitBtn');
+const breakdown = document.getElementById('breakdown');
+const qrImg     = document.getElementById('upi-qr');
+const qrLabel   = document.getElementById('qr-label');
+
+// All required text/select/textarea fields
+const requiredFields = [
+  document.getElementById('inp-name'),
+  document.getElementById('inp-phone'),
+  document.getElementById('inp-email'),
+  document.getElementById('inp-cat'),
+  document.getElementById('inp-del'),
+  document.getElementById('inp-title'),
+  document.getElementById('inp-desc'),
+  document.getElementById('inp-date'),
+];
+
+function fmt(n){ return 'Rs.' + n.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g,','); }
+
+function updateAmount(){
+  const tot = parseFloat(amtInp.value) || 0;
+  const adv = Math.floor(tot * 50) / 100;
+  const bal = tot - adv;
+  if(tot > 0){
+    breakdown.style.display = 'flex';
+    document.getElementById('disp-total').textContent   = fmt(tot);
+    document.getElementById('disp-advance').textContent = fmt(adv);
+    document.getElementById('disp-balance').textContent = fmt(bal);
+    const upiData = `upi://pay?pa=computerbaazi@axl&pn=EduSpare&am=${adv.toFixed(2)}&cu=INR&tn=EduSpare Advance`;
+    qrImg.src = `https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(upiData)}`;
+    qrLabel.textContent = `Scan to pay Rs.${adv.toFixed(2)} advance`;
+  } else {
+    breakdown.style.display = 'none';
+  }
+  checkReady();
+}
+
+function checkReady(){
+  // Check all basic text/select/textarea fields
+  const allBasic = requiredFields.every(el => {
+    if(!el) return false;
+    return el.value.trim().length > 0;
+  });
+  const hasAmt  = parseFloat(amtInp.value) > 0;
+  const hasRef  = refInp.value.trim().length > 0;
+  const hasFile = proofInp.files && proofInp.files.length > 0;
+
+  const allFilled = allBasic && hasAmt && hasRef && hasFile;
+  submitBtn.disabled = !allFilled;
+
+  if(!allFilled){
+    const missing = [];
+    const names = ['Name','Phone','Email','Category','Delivery Type','Title','Description','Date'];
+    requiredFields.forEach((el,i) => { if(!el || !el.value.trim()) missing.push(names[i]); });
+    if(!hasAmt)  missing.push('Discussed Amount');
+    if(!hasRef)  missing.push('UPI Reference');
+    if(!hasFile) missing.push('Payment Screenshot');
+    submitBtn.textContent = missing.length === 1
+      ? `Missing: ${missing[0]} →`
+      : `${missing.length} fields missing — fill all to submit`;
+  } else {
+    submitBtn.textContent = 'Submit Order →';
+  }
+}
+
+// Wire up listeners on every field
+amtInp.addEventListener('input', updateAmount);
+refInp.addEventListener('input', checkReady);
+requiredFields.forEach(el => {
+  if(el) el.addEventListener('input', checkReady);
+  if(el) el.addEventListener('change', checkReady);
+});
+
+const label      = document.getElementById('proofLabel');
+const uploadText = document.getElementById('uploadText');
+const preview    = document.getElementById('proofPreview');
+const previewImg = document.getElementById('previewImg');
+const previewNm  = document.getElementById('previewName');
+const removeBtn  = document.getElementById('removeProof');
+
+label.addEventListener('click', () => proofInp.click());
+proofInp.addEventListener('change', function(){
+  if(this.files && this.files[0]){
+    const f = this.files[0];
+    previewNm.textContent = f.name;
+    label.classList.add('has-file');
+    uploadText.textContent = '✓ ' + f.name;
+    if(f.type.startsWith('image/')){
+      const r = new FileReader();
+      r.onload = e => { previewImg.src = e.target.result; previewImg.style.display = 'block'; };
+      r.readAsDataURL(f);
+    } else { previewImg.style.display = 'none'; }
+    preview.style.display = 'flex';
+  }
+  checkReady();
+});
+removeBtn.addEventListener('click', function(){
+  proofInp.value = '';
+  previewImg.style.display = 'none';
+  preview.style.display = 'none';
+  label.classList.remove('has-file');
+  uploadText.textContent = 'Click to upload payment screenshot (PNG/JPG/WEBP/PDF · max 5 MB)';
+  checkReady();
+});
+</script>
+{% endblock %}

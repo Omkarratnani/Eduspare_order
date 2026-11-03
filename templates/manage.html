@@ -1,0 +1,92 @@
+﻿{% extends 'base.html' %}{% block content %}
+<section class="page">
+  <a href="/admin">← Dashboard</a>
+  <h1>{{ o['title'] }}</h1>
+  <p>{{ o['id'] }} · {{ o['name'] }} · {{ o['phone'] }} · {{ o['email'] }}</p>
+
+  <div class="twocol" style="align-items:start">
+    <!-- Left: customer info + timeline -->
+    <div>
+      <div class="panel">
+        <h2>Customer requirements</h2>
+        <p>{{ o['description'] }}</p>
+        <p>Category: {{ o['category'] }} · Delivery: {{ o['delivery_type'] }} · Deadline: {{ o['deadline'] }} · Urgent: {{ 'Yes' if o['urgent'] else 'No' }}</p>
+        <p>Quote accepted: {{ 'Yes' if o['quote_accepted'] else 'No' }}</p>
+        <hr style="border-color:rgba(255,255,255,.07);margin:12px 0">
+        <h3 style="font-size:.95rem;color:#94a3b8">Order-time advance payment</h3>
+        <p>Ref: <code>{{ o['order_payment_ref'] or 'N/A' }}</code></p>
+        {% if o['order_payment_file'] %}
+        <a class="btn small outline" href="{{ url_for('order_proof', oid=o['id']) }}">⬇ Download Order Payment Screenshot</a>
+        {% else %}
+        <p class="muted">No order-time screenshot on file.</p>
+        {% endif %}
+        <hr style="border-color:rgba(255,255,255,.07);margin:12px 0">
+        <h3 style="font-size:.95rem;color:#94a3b8">Formal advance payment proof</h3>
+        <p>Ref: <code>{{ o['payment_ref'] or 'Not submitted' }}</code></p>
+        {% if o['payment_file'] %}
+        <a class="btn small outline" href="{{ url_for('proof', oid=o['id']) }}">⬇ Download Formal Advance Proof</a>
+        {% endif %}
+      </div>
+
+      <!-- Timeline -->
+      <div class="panel timeline-panel">
+        <h2>📋 Status History</h2>
+        {% if log %}
+        <ol class="timeline">
+          {% for entry in log %}
+          <li class="tl-item {% if loop.last %}tl-current{% endif %}">
+            <div class="tl-dot"></div>
+            <div class="tl-body">
+              <span class="tl-status">{{ entry['status'] }}</span>
+              <span class="tl-ts">{{ entry['ts'] }}</span>
+              {% if entry['note'] %}<p class="tl-note">{{ entry['note'] }}</p>{% endif %}
+            </div>
+          </li>
+          {% endfor %}
+        </ol>
+        {% else %}
+        <p class="muted">No log entries yet.</p>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- Right: manage form -->
+    <form class="panel" method="post" id="manageForm">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <h2>Manage order</h2>
+      <label>Base quote (₹, urgency added automatically)
+        <input type="number" step="0.01" min="0" name="base_price" value="{{ '%.2f'|format((o['base_price'] or 0)/100) }}" required id="inp-price">
+      </label>
+      <label>Order status
+        <select name="status" id="inp-status">
+          {% for s in statuses %}<option value="{{ s }}" {{ 'selected' if s==o['status'] else '' }}>{{ s }}</option>{% endfor %}
+        </select>
+      </label>
+      <label class="check"><input type="checkbox" name="advance_verified" value="yes" {{ 'checked' if o['advance_verified'] else '' }}> Advance payment verified</label>
+      <label class="check"><input type="checkbox" name="final_verified" value="yes" {{ 'checked' if o['final_verified'] else '' }}> Final payment verified</label>
+      <label>Customer-visible update notes
+        <textarea name="admin_notes" rows="5" id="inp-notes">{{ o['admin_notes'] or '' }}</textarea>
+      </label>
+      <button class="btn" type="submit" id="saveBtn">Save &amp; Notify Customer →</button>
+      <p class="muted small">Saving a status change will automatically email the customer with the new status and your notes.</p>
+    </form>
+  </div>
+</section>
+
+<style>
+.timeline-panel{margin-top:20px}
+.timeline{list-style:none;padding:0;margin:0;display:flex;flex-direction:column;gap:0}
+.tl-item{display:flex;gap:16px;position:relative;padding-bottom:20px}
+.tl-item:last-child{padding-bottom:0}
+.tl-item::before{content:'';position:absolute;left:9px;top:20px;width:2px;bottom:0;background:rgba(124,58,237,.2)}
+.tl-item:last-child::before{display:none}
+.tl-dot{width:20px;height:20px;border-radius:50%;background:#1a1a2e;border:2px solid rgba(124,58,237,.4);flex-shrink:0;margin-top:2px;z-index:1}
+.tl-current .tl-dot{background:#7c3aed;border-color:#a78bfa;box-shadow:0 0 10px rgba(124,58,237,.5)}
+.tl-body{flex:1}
+.tl-status{font-weight:700;color:#e2e8f0;display:block}
+.tl-ts{font-size:.78rem;color:#475569}
+.tl-note{color:#94a3b8;margin:4px 0 0;font-size:.88rem}
+code{background:rgba(255,255,255,.07);padding:2px 6px;border-radius:4px;font-size:.85em}
+.small{font-size:.82rem}
+</style>
+{% endblock %}
