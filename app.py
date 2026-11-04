@@ -24,10 +24,13 @@ except ImportError:
     REPORTLAB = False
 
 BASE   = os.path.dirname(__file__)
+IS_VERCEL = os.environ.get("VERCEL", "") == "1"
+UPLOAD_DIR = os.path.join("/tmp", "uploads") if IS_VERCEL else os.path.join(BASE, "uploads")
 app    = Flask(__name__)
 app.secret_key = os.environ.get("SECRET_KEY", secrets.token_hex(32))
 app.config["MAX_CONTENT_LENGTH"] = 5 * 1024 * 1024
-DB     = os.environ.get("DATABASE_PATH", os.path.join(BASE, "eduspare.db"))
+DB     = os.environ.get("DATABASE_PATH", "/tmp/eduspare.db" if IS_VERCEL else os.path.join(BASE, "eduspare.db"))
+os.makedirs(UPLOAD_DIR, exist_ok=True)
 UPI    = "computerbaazi@axl"
 ADMIN_WA = "918839445039"
 STATUSES = ["Requested","Payment Received","In Progress","Testing","Ready","Delivered","Cancelled"]
@@ -161,7 +164,7 @@ def save_upload(file):
     ext = os.path.splitext(secure_filename(file.filename))[1].lower()
     if ext not in ALLOWED_EXT: return None, "Unsupported file type (PNG/JPG/WEBP/PDF)."
     fn = uuid.uuid4().hex + ext
-    file.save(os.path.join(BASE,"uploads",fn))
+    file.save(os.path.join(UPLOAD_DIR, fn))
     return fn, None
 
 # ── PDF Bill ──────────────────────────────────────────────────────────────────
@@ -473,14 +476,14 @@ def manage(oid):
 def proof(oid):
     o = get_order(oid)
     if not o or not o["payment_file"]: abort(404)
-    return send_from_directory(os.path.join(BASE,"uploads"), o["payment_file"], as_attachment=True)
+    return send_from_directory(UPLOAD_DIR, o["payment_file"], as_attachment=True)
 
 @app.get("/admin/order-proof/<oid>")
 @admin_only
 def order_proof(oid):
     o = get_order(oid)
     if not o or not o["order_payment_file"]: abort(404)
-    return send_from_directory(os.path.join(BASE,"uploads"), o["order_payment_file"], as_attachment=True)
+    return send_from_directory(UPLOAD_DIR, o["order_payment_file"], as_attachment=True)
 
 init()
 if __name__ == "__main__": app.run(debug=os.environ.get("FLASK_DEBUG")=="1")
