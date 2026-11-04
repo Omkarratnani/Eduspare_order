@@ -59,9 +59,13 @@ def send_email_async(to, subject, html):
                 s.starttls()
                 s.login(SMTP_USER, SMTP_PASS)
                 s.sendmail(MAIL_FROM, [to], msg.as_string())
+            app.logger.info("Email sent to %s", to)
         except Exception as e:
             app.logger.error("Email error: %s", e)
-    threading.Thread(target=_send, daemon=True).start()
+    if IS_VERCEL:
+        _send()  # Vercel kills threads after response — must run synchronously
+    else:
+        threading.Thread(target=_send, daemon=True).start()
 
 def _wrap_email(body_html, oid=""):
     footer = f"Order ID: <b>{oid}</b> &nbsp;|&nbsp; UPI: {UPI} &nbsp;|&nbsp; WhatsApp: +{ADMIN_WA}" if oid else ""
