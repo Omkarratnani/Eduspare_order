@@ -106,7 +106,7 @@ input:invalid:not(:placeholder-shown),select:invalid:not([value=""]),textarea:in
 input:valid,select:valid,textarea:valid{border-color:rgba(16,185,129,.35)!important}
 .amount-panel{background:rgba(124,58,237,.06);border:1.5px solid rgba(124,58,237,.25)}
 .amount-breakdown{display:flex;flex-direction:column;gap:8px;margin-top:12px;border-radius:10px;overflow:hidden;border:1px solid rgba(255,255,255,.06)}
-.amt-row{display:flex;justify-content:space-between;align-items:center;padding:10px 14px;font-size:.95rem}
+.amt-row{display:flex;justify-content:space-between;align-items:center;padding:10px 14px;font-size:.95rem;flex-wrap:wrap;gap:4px}
 .amt-row:nth-child(odd){background:rgba(255,255,255,.03)}
 .amt-row.advance-row strong{color:#10b981}
 .amt-row.balance-row{border-top:1px solid rgba(255,255,255,.08)}
@@ -116,10 +116,10 @@ input:valid,select:valid,textarea:valid{border-color:rgba(16,185,129,.35)!import
 .qr-upi-row{display:flex;gap:24px;align-items:flex-start;margin:16px 0;flex-wrap:wrap}
 .qr-wrap{display:flex;flex-direction:column;align-items:center;gap:6px}
 .qr-wrap img{border-radius:10px;border:2px solid rgba(124,58,237,.3);background:#fff;padding:6px}
-.upi-info{flex:1;display:flex;flex-direction:column;gap:12px}
+.upi-info{flex:1;display:flex;flex-direction:column;gap:12px;min-width:0}
 .upi-id-box{display:flex;align-items:center;gap:10px;background:rgba(0,0,0,.3);border-radius:8px;padding:12px 14px;flex-wrap:wrap}
 .upi-id-box .muted{margin:0}
-.upi-id{font-size:1.05rem;color:#e2e8f0;flex:1}
+.upi-id{font-size:1.05rem;color:#e2e8f0;flex:1;word-break:break-all}
 .wa-contact{display:inline-flex;align-items:center;gap:8px;background:rgba(37,211,102,.1);border-color:rgba(37,211,102,.4);color:#25d366}
 .wa-contact:hover{background:rgba(37,211,102,.2)}
 .upload-label{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;border:2px dashed rgba(124,58,237,.35);border-radius:10px;padding:26px 16px;cursor:pointer;transition:.2s;text-align:center;margin-top:8px}
@@ -131,7 +131,27 @@ input:valid,select:valid,textarea:valid{border-color:rgba(16,185,129,.35)!import
 #submitBtn:not(:disabled){background:linear-gradient(135deg,#7c3aed,#4f46e5)}
 #submitBtn:disabled{opacity:.4;cursor:not-allowed}
 .small{font-size:.82rem}
+
+/* Mobile: order form */
+@media(max-width:760px){
+  .formgrid{grid-template-columns:1fr!important}
+  .formgrid .wide{grid-column:auto}
+  .qr-upi-row{flex-direction:column;align-items:center;gap:16px}
+  .qr-wrap img{width:150px;height:150px}
+  .upi-info{width:100%}
+  .upi-id-box{flex-direction:column;text-align:center;gap:8px}
+  .upi-id{font-size:.9rem;text-align:center}
+  .upload-label{padding:20px 12px}
+  #uploadText{font-size:.8rem}
+  .amt-row{font-size:.85rem;padding:8px 10px}
+  .wa-contact{width:100%;justify-content:center}
+}
+@media(max-width:430px){
+  .qr-wrap img{width:130px;height:130px}
+  .upload-label{padding:16px 10px}
+}
 </style>
+
 
 <script>
 const amtInp    = document.getElementById('inp-amount');
